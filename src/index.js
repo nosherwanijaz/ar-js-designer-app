@@ -1,5 +1,6 @@
 import React, { Fragment } from 'react';
 import ReactDOM from 'react-dom';
+import { saveAs } from 'file-saver';
 import '@grapecity/activereports/styles/ar-js-ui.css';
 import '@grapecity/activereports/styles/ar-js-viewer.css';
 import '@grapecity/activereports/styles/ar-js-designer.css';
@@ -31,6 +32,12 @@ function App() {
     result.download('exportedreport.pdf');
   }
 
+  const exportReport = () => {
+    const definition = Object.values(reportStorage)[0];
+    var blob = new Blob([JSON.stringify(definition)], { type: 'application/json' });
+    saveAs(blob, "report-definition.json");
+  }
+
   React.useEffect(() => {
     designer.current = new ReportDesigner('#designer-host');
     designer.current.setActionHandlers({
@@ -56,12 +63,12 @@ function App() {
       },
       onSave: function (info) {
         const reportId = info.id || `NewReport${++counter.current}`;
-        setReportStorage(new Map(reportStorage.set(reportId, info.definition)));
+        setReportStorage({ ...reportStorage, reportId: info.definition });
         return Promise.resolve({ displayName: reportId });
       },
       onSaveAs: function (info) {
         const reportId = `NewReport${++counter.current}`;
-        setReportStorage(new Map(reportStorage.set(reportId, info.definition)));
+        setReportStorage({ ...reportStorage, reportId: info.definition });
         return Promise.resolve({ id: reportId, displayName: reportId });
       },
     });
@@ -69,18 +76,28 @@ function App() {
       id: './Summons_CourtAppearanceRequired_narrow.rdlx-json',
     });
   }, []);
+
   return (
     <Fragment>
       <div id='designer-toolbar' class='container-fluid'>
         <div class='row mt-3 mb-3'>
           {designerVisible && (
-            <button
-              type='button'
-              class='btn btn-primary btn-sm col-sm-2 ml-1'
-              onClick={() => onPdfPreview()}
-            >
-              PDF Preview
+            <div style={{ width: '100%' }}>
+              <button
+                type='button'
+                class='btn btn-primary btn-sm col-sm-2 ml-1'
+                onClick={() => onPdfPreview()}
+              >
+                PDF Preview
             </button>
+              <button
+                type='button'
+                class='btn btn-primary btn-sm col-sm-2 ml-1'
+                onClick={() => exportReport()}
+              >
+                Export Report
+            </button>
+            </div>
           )}
           {!designerVisible && (
             <button
@@ -97,12 +114,14 @@ function App() {
         id='designer-host'
         style={{ display: designerVisible ? 'block' : 'none' }}
       ></div>
-      {!designerVisible && (
-        <div id='viewer-host'>
-          <ReportViewer ref={viewer} />
-        </div>
-      )}
-    </Fragment>
+      {
+        !designerVisible && (
+          <div id='viewer-host'>
+            <ReportViewer ref={viewer} />
+          </div>
+        )
+      }
+    </Fragment >
   );
 }
 
