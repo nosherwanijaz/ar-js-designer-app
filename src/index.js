@@ -1,6 +1,8 @@
 import React, { Fragment } from 'react';
 import ReactDOM from 'react-dom';
 import { saveAs } from 'file-saver';
+import { FilePicker } from 'react-file-picker';
+import { useFilePicker } from 'react-sage';
 import '@grapecity/activereports/styles/ar-js-ui.css';
 import '@grapecity/activereports/styles/ar-js-viewer.css';
 import '@grapecity/activereports/styles/ar-js-designer.css';
@@ -12,12 +14,15 @@ import { Viewer as ReportViewer } from '@grapecity/activereports-react';
 import { PageReport } from '@grapecity/activereports/core';
 import { exportDocument as PdfExport } from '@grapecity/activereports/pdfexport';
 
+const REPORTS_ROOT = 'reports';
+
 function App() {
+  const path = require('path');
   const designer = React.useRef();
-  const currentResolveFn = React.useRef();
+  const inputFile = React.useRef(null);
   const viewer = React.useRef();
   const [designerVisible, setDesignerVisible] = React.useState(true);
-  const counter = React.useRef(0);
+  const counter = React.useRef(1);
   const [reportStorage, setReportStorage] = React.useState(new Map());
   function onDesignerOpen() {
     setDesignerVisible(true);
@@ -32,10 +37,14 @@ function App() {
     result.download('exportedreport.pdf');
   }
 
-  const exportReport = () => {
-    const definition = Object.values(reportStorage)[0];
-    var blob = new Blob([JSON.stringify(definition)], { type: 'application/json' });
-    saveAs(blob, "report-definition.json");
+  async function exportReport() {
+    const reportInfo = await designer.current.getReport();
+    var blob = new Blob([JSON.stringify(reportInfo.definition)], {
+      type: 'application/json',
+    });
+    let baseName = path.basename(reportInfo.id, '.rdlx-json');
+    let fileName = `${baseName} ${counter.current++}.rdlx-json`;
+    saveAs(blob, fileName);
   }
 
   React.useEffect(() => {
@@ -46,63 +55,58 @@ function App() {
         viewer.current.open(report.definition);
         return Promise.resolve();
       },
-      onCreate: function () {
-        const reportId = `NewReport${++counter.current}`;
-        return Promise.resolve({
-          definition: templates.CPL,
-          id: reportId,
-          displayName: reportId,
-        });
-      },
-      onOpen: function () {
-        const ret = new Promise(function (resolve) {
-          currentResolveFn.current = resolve;
-          window.$('#dlgOpen').modal('show');
-        });
-        return ret;
-      },
       onSave: function (info) {
-        const reportId = info.id || `NewReport${++counter.current}`;
-        setReportStorage({ ...reportStorage, reportId: info.definition });
+        const reportId = info.id;
+        setReportStorage({
+          ...reportStorage,
+          reportId: reportId,
+          reportDefinition: info.definition,
+        });
         return Promise.resolve({ displayName: reportId });
       },
-      onSaveAs: function (info) {
-        const reportId = `NewReport${++counter.current}`;
-        setReportStorage({ ...reportStorage, reportId: info.definition });
-        return Promise.resolve({ id: reportId, displayName: reportId });
-      },
-    });
-    designer.current.setReport({
-      id: './Summons_CourtAppearanceRequired_narrow.rdlx-json',
     });
   }, []);
 
   return (
     <Fragment>
-      <div id='designer-toolbar' class='container-fluid'>
-        <div class='row mt-3 mb-3'>
+      <div id='designer-toolbar' className='container-fluid'>
+        <div className='row mt-3 mb-3'>
           {designerVisible && (
             <div style={{ width: '100%' }}>
-              <button
-                type='button'
-                class='btn btn-primary btn-sm col-sm-2 ml-1'
-                onClick={() => onPdfPreview()}
+              <FilePicker
+                extensions={['rdlx-json']}
+                onChange={(FileObject) => {
+                  console.log(path.join(REPORTS_ROOT, FileObject.name));
+                  designer.current.setReport({
+                    id: path.join(REPORTS_ROOT, FileObject.name),
+                  });
+                }}
+                onError={(errMsg) => console.log(errMsg)}
               >
-                PDF Preview
-            </button>
+                <button className='btn btn-primary btn-sm col-sm-2 ml-1'>
+                  Load Report
+                </button>
+              </FilePicker>
               <button
                 type='button'
-                class='btn btn-primary btn-sm col-sm-2 ml-1'
+                className='btn btn-primary btn-sm col-sm-2 ml-1'
                 onClick={() => exportReport()}
               >
                 Export Report
-            </button>
+              </button>
+              <button
+                type='button'
+                className='btn btn-primary btn-sm col-sm-2 ml-1'
+                onClick={() => onPdfPreview()}
+              >
+                PDF Preview
+              </button>
             </div>
           )}
           {!designerVisible && (
             <button
               type='button'
-              class='btn btn-primary btn-sm col-sm-2 ml-1'
+              className='btn btn-primary btn-sm col-sm-2 ml-1'
               onClick={() => onDesignerOpen()}
             >
               Open Designer
@@ -114,14 +118,12 @@ function App() {
         id='designer-host'
         style={{ display: designerVisible ? 'block' : 'none' }}
       ></div>
-      {
-        !designerVisible && (
-          <div id='viewer-host'>
-            <ReportViewer ref={viewer} />
-          </div>
-        )
-      }
-    </Fragment >
+      {!designerVisible && (
+        <div id='viewer-host'>
+          <ReportViewer ref={viewer} />
+        </div>
+      )}
+    </Fragment>
   );
 }
 
