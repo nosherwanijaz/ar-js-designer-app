@@ -2,7 +2,6 @@ import React, { Fragment } from 'react';
 import ReactDOM from 'react-dom';
 import { saveAs } from 'file-saver';
 import { FilePicker } from 'react-file-picker';
-import { useFilePicker } from 'react-sage';
 import '@grapecity/activereports/styles/ar-js-ui.css';
 import '@grapecity/activereports/styles/ar-js-viewer.css';
 import '@grapecity/activereports/styles/ar-js-designer.css';
@@ -19,13 +18,17 @@ const REPORTS_ROOT = 'reports';
 function App() {
   const path = require('path');
   const designer = React.useRef();
-  const inputFile = React.useRef(null);
   const viewer = React.useRef();
   const [designerVisible, setDesignerVisible] = React.useState(true);
   const counter = React.useRef(1);
   const [reportStorage, setReportStorage] = React.useState(new Map());
   function onDesignerOpen() {
     setDesignerVisible(true);
+  }
+  function onLoadBlank(fpl) {
+    designer.current.setReport({
+      definition: fpl ? templates.FPL : templates.CPL,
+    });
   }
 
   async function onPdfPreview() {
@@ -50,6 +53,9 @@ function App() {
   React.useEffect(() => {
     designer.current = new ReportDesigner('#designer-host');
     designer.current.setActionHandlers({
+      onCreate: function () {
+        return Promise.resolve();
+      },
       onRender: (report) => {
         setDesignerVisible(false);
         viewer.current.open(report.definition);
@@ -73,6 +79,21 @@ function App() {
         <div className='row mt-3 mb-3'>
           {designerVisible && (
             <div style={{ width: '100%' }}>
+              <button
+                type='button'
+                class='btn btn-primary btn-sm col-sm-2 ml-1'
+                onClick={() => onLoadBlank(false)}
+              >
+                Load Blank RDL
+              </button>
+
+              <button
+                type='button'
+                class='btn btn-secondary btn-sm col-sm-2 ml-1'
+                onClick={() => onLoadBlank(true)}
+              >
+                Load Blank FPL
+              </button>
               <FilePicker
                 extensions={['rdlx-json']}
                 onChange={(FileObject) => {

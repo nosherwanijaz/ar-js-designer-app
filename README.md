@@ -13,5 +13,16 @@ Next, you need to run the app in the development mode. Run by executing `npm sta
 
 Open [http://localhost:3000](http://localhost:3000) to view it in the browser.
 
-The page will reload if you make edits.\
-You will also see any lint errors in the console.
+## Load Reports
+
+In order to edit existing reports, you need to add the respective reports under `public/reports` directory. `reports` directory doesn't exist by default. You can create it yourself. Use `Load Report` button on the top of app to load reports from the `public/reports` directory.
+
+## Saving Reports
+
+Reports can be save by clicking the `save` icon in the menu bar. Alternatively, pressing `ctrl + s` will also save the reports.
+
+Note: Reports are saved only in react's state which can be lost if you refresh page. Make sure to `export report` often to save it on your local filesystem.
+
+## Export Reports
+
+Click on the `Export Report` button located at the top in the menu bar to save reports to your local filesystem.
